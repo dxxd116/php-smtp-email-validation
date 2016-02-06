@@ -55,7 +55,8 @@ class SMTP_validateEmail {
   * @var Array $nameservers 
   */
  var $nameservers = array(
-	'192.168.0.1'
+	'172.30.0.2',
+	'192.168.1.1'
 );
  
  var $debug = false;
@@ -162,7 +163,7 @@ class SMTP_validateEmail {
 	   $reply = fread($this->sock, 2082);
 	   $this->debug("<<<\n$reply");
 	   
-	   preg_match('/^([0-9]{3}) /ims', $reply, $matches);
+	   preg_match('/^([0-9]{3}) /im', $reply, $matches);
 	   $code = isset($matches[1]) ? $matches[1] : '';
 	
 	   if($code != '220') {
@@ -185,19 +186,23 @@ class SMTP_validateEmail {
 		   $reply = $this->send("RCPT TO: <".$user.'@'.$domain.">");
 		   
 		    // get code and msg from response
-		   preg_match('/^([0-9]{3}) /ims', $reply, $matches);
+		   preg_match('/^([0-9]{3}) /im', $reply, $matches);
 		   $code = isset($matches[1]) ? $matches[1] : '';
 		
 		   if ($code == '250') {
 		    // you received 250 so the email address was accepted
-		    $results[$user.'@'.$domain] = true;
+				$results[$user.'@'.$domain] = true;
 		   } elseif ($code == '451' || $code == '452') {
 			// you received 451 so the email address was greylisted (or some temporary error occured on the MTA) - so assume is ok
-			$results[$user.'@'.$domain] = true;
+				$results[$user.'@'.$domain] = true;
+		   } elseif ($code == '554') {
+				$this->debug("$reply\n");
+				$results[$user.'@'.$domain]= true;
 		   } else {
-		   	$results[$user.'@'.$domain] = false;
+				$this->debug("$reply\n");
+				$results[$user.'@'.$domain] = false;
 		   }
-	   
+			usleep(200000);
 	   }
 	   
 	   // reset before quit
